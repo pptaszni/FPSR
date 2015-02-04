@@ -3,7 +3,7 @@
 
 int main(){
 
-    std::cout << "Hello FPSR team. Feal free to develop this app\n";
+    std::cout << "Hello FPSR team. Feel free to develop this app\n";
 
     RS232Connector *c1;
 
