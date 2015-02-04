@@ -5,7 +5,7 @@ include_directories(inc inc/RS232Connector)
 
 add_subdirectory(lib)
 
-include_directories(lib/gmock/include lib/gmock/gtest/include)
+include_directories(lib/gmock/include lib/gmock/gtest/include tests/mocks)
 
 add_subdirectory(src)
 

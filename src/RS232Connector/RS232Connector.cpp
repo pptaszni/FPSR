@@ -1,7 +1,15 @@
+#include <termios.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <iostream>
+
 #include "RS232Connector.hpp"
 
 
-RS232Connector::RS232Connector(): _fd(0) {
+RS232Connector::RS232Connector(): _fd(0)
+{
 
     int status;
     status = _init();
@@ -11,9 +19,10 @@ RS232Connector::RS232Connector(): _fd(0) {
 
 }
 
-RS232Connector::~RS232Connector(){}
+RS232Connector::~RS232Connector() {}
 
-int RS232Connector::_init(){
+int RS232Connector::_init()
+{
 
     struct termios tds;
     int i;
@@ -39,7 +48,8 @@ int RS232Connector::_init(){
 
 }
 
-int RS232Connector::sendByte(char c){
+int RS232Connector::sendByte(char c)
+{
     
     write(_fd,&c,1);
     //if(read(_fd,&c,1)>0){
@@ -47,4 +57,9 @@ int RS232Connector::sendByte(char c){
     //}
     return 0;
 
+}
+
+char RS232Connector::getByte()
+{
+    return 0;
 }

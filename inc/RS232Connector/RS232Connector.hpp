@@ -1,15 +1,10 @@
 #ifndef RS232CONNECTOR
 #define RS232CONNECTOR
 
-#include <termios.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <iostream>
+#include "IRS232Connector.hpp"
 
-
-class RS232Connector{
+class RS232Connector: public IRS232Connector
+{
 
     public:
         RS232Connector();
