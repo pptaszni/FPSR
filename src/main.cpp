@@ -3,6 +3,8 @@
 #include <stdlib.h>
 
 int startSample(int argc, char **argv);
+void reduceSample();
+void blellochSample();
 
 int main(){
 
@@ -16,11 +18,14 @@ int main(){
 
     int argc=1;
     char **argv;
-
+    /*
     argv = (char**)malloc(sizeof(char*));
     argv[0] = "simpleSurfaceWrite";
     startSample(argc,argv);
     free(argv);
+    */
+    reduceSample();
+    blellochSample();
 
     return 0;
 }
