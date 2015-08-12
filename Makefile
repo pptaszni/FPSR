@@ -27,6 +27,7 @@ cleanall:
 	rm -rf build/*
 
 help:
+	@echo ""
 	@echo "Hi, this is FPSR main application build system."
 	@echo
 	@echo "List of available commands:"
@@ -36,3 +37,4 @@ help:
 	@echo " - ut: runs all unit tests; use build/tests/ut binary explicitly, if you want to use a google filter"
 	@echo " - clean: removes the compilation products"
 	@echo " - cleanall: ereases build directory"
+	@echo ""
