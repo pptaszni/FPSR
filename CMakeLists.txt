@@ -3,7 +3,7 @@ project(FPSR)
 
 include_directories(inc inc/RS232Connector inc/CUDASample)
 
-include_directories(/usr/local/cuda-6.0/samples/common/inc)
+include_directories(/usr/local/cuda/samples/common/inc)
 
 add_subdirectory(lib)
 
