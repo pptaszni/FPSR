@@ -5,6 +5,7 @@
 int startSample(int argc, char **argv);
 void reduceSample();
 void blellochSample();
+void radixSortSample();
 
 int main(){
 
@@ -24,8 +25,9 @@ int main(){
     startSample(argc,argv);
     free(argv);
     */
-    reduceSample();
+    //reduceSample();
     blellochSample();
+    radixSortSample();
 
     return 0;
 }

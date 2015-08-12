@@ -1,7 +1,7 @@
 cmake_minimum_required( VERSION 2.8 )
 project(FPSR)
 
-include_directories(inc inc/RS232Connector)
+include_directories(inc inc/RS232Connector inc/CUDASample)
 
 include_directories(/usr/local/cuda-6.0/samples/common/inc)
 
