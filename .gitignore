@@ -15,3 +15,5 @@
 *.pyc
 # Build directory
 build
+# Sublime project files
+*.sublime*

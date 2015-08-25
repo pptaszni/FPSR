@@ -6,6 +6,7 @@ int startSample(int argc, char **argv);
 void reduceSample();
 void blellochSample();
 void radixSortSample();
+void fastHistogramSample();
 
 int main(){
 
@@ -26,8 +27,9 @@ int main(){
     free(argv);
     */
     //reduceSample();
-    blellochSample();
-    radixSortSample();
+    //blellochSample();
+    //radixSortSample();
+    fastHistogramSample();
 
     return 0;
 }
