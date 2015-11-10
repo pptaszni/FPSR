@@ -3,6 +3,7 @@
 #include <string>
 #include <boost/regex.hpp>
 #include "RS232Connector.hpp"
+#include "Endogenous.hpp"
 
 int startSample(int argc, char **argv);
 void reduceSample();
@@ -31,11 +32,16 @@ int main(){
 
     std::cout << "Hello FPSR team. Feel free to develop this app\n";
 
-    RS232Connector *c1;
+    // RS232Connector *c1;
+    EndogenousMethod *m1;
 
-    c1 = new RS232Connector;
-    c1->sendByte('d');
-    delete c1;
+    // c1 = new RS232Connector;
+    // c1->sendByte('d');
+    // delete c1;
+
+    m1 = new EndogenousMethod;
+    m1->Start();
+    delete m1;
 
     int argc=1;
     char **argv;
@@ -50,7 +56,7 @@ int main(){
     //radixSortSample();
     //fastHistogramSample();
     //poissonBlendingSample();
-    boostTestFunction();
+    //boostTestFunction();
 
     return 0;
 }

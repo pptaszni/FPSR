@@ -13,7 +13,8 @@ set(CMAKE_EXE_LINKER_FLAGS "-lm ${OPENCV_LINKER_FLAGS} ${BOOST_LINKER_FLAGS}")
 
 add_subdirectory(RS232Connector)
 add_subdirectory(CUDASample)
+add_subdirectory(Endogenous)
 
 add_executable(main main.cpp)
 
-target_link_libraries(main RS232Connector CUDASample)
+target_link_libraries(main RS232Connector CUDASample Endogenous)
