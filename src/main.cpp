@@ -1,6 +1,8 @@
 #include <iostream>
-#include "RS232Connector.hpp"
 #include <stdlib.h>
+#include <string>
+#include <boost/regex.hpp>
+#include "RS232Connector.hpp"
 
 int startSample(int argc, char **argv);
 void reduceSample();
@@ -8,6 +10,22 @@ void blellochSample();
 void radixSortSample();
 void fastHistogramSample();
 void poissonBlendingSample();
+
+
+
+int boostTestFunction()
+{
+    std::string line;
+    boost::regex pat( "^Subject: (Re: |Aw: )*(.*)" );
+
+    while (std::cin)
+    {
+        std::getline(std::cin, line);
+        boost::smatch matches;
+        if (boost::regex_match(line, matches, pat))
+            std::cout << matches[2] << std::endl;
+    }
+}
 
 int main(){
 
@@ -31,7 +49,8 @@ int main(){
     //blellochSample();
     //radixSortSample();
     //fastHistogramSample();
-    poissonBlendingSample();
+    //poissonBlendingSample();
+    boostTestFunction();
 
     return 0;
 }
