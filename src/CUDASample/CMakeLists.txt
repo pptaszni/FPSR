@@ -1,7 +1,7 @@
 find_package(CUDA QUIET REQUIRED)
 
 SET(CUDASample_SRC simpleSurfaceWrite.cu reduceTraining.cu blellochTraining.cu
-    radixSortTraining.cu fastHistogramTraining.cu)
+    radixSortTraining.cu fastHistogramTraining.cu poissonBlending.cu)
 
 set(GENCODE -gencode=arch=compute_32,code=sm_32)
 set(GENCODE ${GENCODE} -gencode=arch=compute_52,code=sm_52)

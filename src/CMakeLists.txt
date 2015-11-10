@@ -1,6 +1,8 @@
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 
-set(CMAKE_EXE_LINKER_FLAGS "-lm")
+set(OPENCV_LINKER_FLAGS "-lopencv_core -lopencv_imgproc -lopencv_highgui")
+
+set(CMAKE_EXE_LINKER_FLAGS "-lm ${OPENCV_LINKER_FLAGS}")
 
 add_subdirectory(RS232Connector)
 add_subdirectory(CUDASample)

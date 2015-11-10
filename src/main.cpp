@@ -7,6 +7,7 @@ void reduceSample();
 void blellochSample();
 void radixSortSample();
 void fastHistogramSample();
+void poissonBlendingSample();
 
 int main(){
 
@@ -29,7 +30,8 @@ int main(){
     //reduceSample();
     //blellochSample();
     //radixSortSample();
-    fastHistogramSample();
+    //fastHistogramSample();
+    poissonBlendingSample();
 
     return 0;
 }
