@@ -7,7 +7,7 @@
 
 // This is just a sample test, should be rewritten after RS232Connector full definition
 
-TEST(RS232ConnectorTest, SendsByteAndReturns0)
+TEST(RS232ConnectorTest, DISABLED_SendsByteAndReturns0)
 {
     MockIRS232Connector connector_mock;
     IRS232Connector* connector;

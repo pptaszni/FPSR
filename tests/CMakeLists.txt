@@ -3,4 +3,4 @@ file(GLOB TEST_FILES
 
 add_executable(ut ${TEST_FILES})
 
-target_link_libraries(ut gmock gtest pthread RS232Connector)
+target_link_libraries(ut gmock gtest pthread RS232Connector Endogenous)
