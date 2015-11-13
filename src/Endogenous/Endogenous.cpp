@@ -13,12 +13,13 @@ void EndogenousMethod::Start()
 {
     cout << "EndogenousMethod starts ..." << endl;
     SolveSampleEquation();
+    SolveSampleMatrixEquation();
 }
 
 void EndogenousMethod::SolveSampleEquation()
 {
     cout << "Going to solve sample equation ..." << endl;
-    state_type x0(7,0);
+    state_type x0(STATE_VECTOR_DIM,0);
     VehicleEquation vehicleEQ;
     size_t steps;
     time_type start_time;
@@ -37,19 +38,53 @@ void EndogenousMethod::SolveSampleEquation()
     steps = odeint::integrate_adaptive(
         odeint::make_controlled<solver_type>(abs_err, rel_err),
         vehicleEQ, x0, start_time, end_time, interval,
-        SolutionObserver(out_states,out_time));
+        SolutionObserver<state_type>(out_states,out_time));
     cout << "Calculated solution in " << steps << " steps \n";
 
-    for (size_t i=0; i<=steps; i++)
-    {
-        cout << out_time[i] << '\t' << out_states[i][2] << '\t' << out_states[i][3] << '\n';
-    }
-
-    SaveResults(out_states, out_time);
+    SaveResults(out_states, out_time, "solution");
 }
 
-void EndogenousMethod::SaveResults(const std::vector<state_type> out_states,
-        const std::vector<time_type> out_time)
+void EndogenousMethod::SolveSampleMatrixEquation()
+{
+    cout << "Going to solve sample matrix equation ..." << endl;
+    matrix_state_type S0(MATRIX_STATE_DIM1, MATRIX_STATE_DIM2);
+    SMatrixEquation sMatrixEQ;
+    size_t steps;
+    time_type start_time;
+    time_type end_time;
+    time_type interval;
+    double abs_err;
+    double rel_err;
+    vector<matrix_state_type> out_states;
+    vector<time_type> out_time;
+    typedef odeint::runge_kutta_dopri5<matrix_state_type> solver_type;
+
+    for (int i=0; i<S0.size1(); i++)
+    {
+        for (int j=0; j<S0.size2(); j++)
+        {
+            S0(i,j) = 0;
+        }
+    }
+
+    start_time = 0.0;
+    end_time = 10.0;
+    interval = 0.01;
+    abs_err = 1.0e-9;
+    rel_err = 1.0e-6;
+
+    steps = odeint::integrate_adaptive(
+        odeint::make_controlled<solver_type>(abs_err, rel_err),
+        sMatrixEQ, S0, start_time, end_time, interval,
+        SolutionObserver<matrix_state_type>(out_states,out_time));
+    cout << "Calculated solution in " << steps << " steps \n";
+
+    SaveResults(out_states, out_time, "matrixSolution");
+}
+
+void EndogenousMethod::SaveResults(const vector<state_type> out_states,
+        const vector<time_type> out_time,
+        string filename)
 {
     ofstream outFile;
     size_t numStates;
@@ -82,7 +117,7 @@ void EndogenousMethod::SaveResults(const std::vector<state_type> out_states,
     gnuplotCommand += "set xlabel \"Time\"\n";
     gnuplotCommand += "set ylabel \"State\"\n";
     gnuplotCommand += "set term png\n";
-    gnuplotCommand += "set output \"data/solution.png\"\n";
+    gnuplotCommand += "set output \"data/"+filename+".png\"\n";
     gnuplotCommand += "plot ";
 
     for (int i=0; i<numStates; i++)
@@ -96,4 +131,26 @@ void EndogenousMethod::SaveResults(const std::vector<state_type> out_states,
     outFile << gnuplotCommand;
     outFile.close();
     system("./plotSolution.sh");
+}
+
+void EndogenousMethod::SaveResults(const std::vector<matrix_state_type> out_states,
+        const std::vector<time_type> out_time,
+        std::string filename)
+{
+    size_t numCols = out_states[0].size2();
+    for (int i=0; i<numCols; i++)
+    {
+        vector<state_type> x_out;
+        for (auto stateMatrix: out_states)
+        {
+            state_type x(STATE_VECTOR_DIM);
+            for (int j=0; j<x.size(); j++)
+            {
+                x[j]= column(stateMatrix,i)(j);
+            }
+            x_out.push_back(x);
+        }
+        SaveResults(x_out,out_time,
+            filename+"_part"+boost::lexical_cast<std::string>(i));
+    }
 }

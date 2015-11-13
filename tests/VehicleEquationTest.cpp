@@ -9,8 +9,35 @@
 class VehicleEquationShould: public testing::Test
 {
 public:
+    virtual void SetUp()
+    {
+        sut_.setControlInputs([] (time_type t) -> double {return 0;},
+            [] (time_type t) -> double {return 0;});
+    }
     VehicleEquation sut_;
 };
+
+TEST_F(VehicleEquationShould, returnCorrectValuesForDifferentInput2)
+{
+    state_type x0(7,0); // 7 states, each equal 0
+    state_type dx(7,1); // 7 derivatives, initialized as one, which is not correct solution
+    double t;
+
+    sut_.setControlInput2([] (time_type t) -> double {return 25;});
+    sut_(x0, dx, t);
+    ASSERT_EQ(7, dx.size());
+    ASSERT_EQ(2.5,dx[1]);
+
+    sut_.setControlInput2([] (time_type t) -> double {return 150;});
+    sut_(x0, dx, t);
+    ASSERT_EQ(15,dx[1]);
+
+    sut_.setControlInputs([] (time_type t) -> double {return 250;},
+        [] (time_type t) -> double {return 350;});
+    sut_(x0, dx, t);
+    ASSERT_EQ(35,dx[1]);
+
+}
 
 TEST_F(VehicleEquationShould, returnZerosAtTime0IfInitialConditionsAre0)
 {
