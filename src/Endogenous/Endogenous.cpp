@@ -9,14 +9,22 @@
 using namespace std;
 using namespace boost::numeric;
 
-void EndogenousMethod::Start()
+EndogenousMethod::EndogenousMethod()
 {
-    cout << "EndogenousMethod starts ..." << endl;
-    SolveSampleEquation();
-    SolveSampleMatrixEquation();
+    lambdaVec_.assign(LAMBDA_VECTOR_DIM, 0);
+    start_time_ = 0;
+    end_time_ = 10.0;
+    interval_ = 0.01;
 }
 
-void EndogenousMethod::SolveSampleEquation()
+void EndogenousMethod::start()
+{
+    cout << "EndogenousMethod starts ..." << endl;
+    solveSampleEquation();
+    solveSampleMatrixEquation();
+}
+
+void EndogenousMethod::solveSampleEquation()
 {
     cout << "Going to solve sample equation ..." << endl;
     state_type x0(STATE_VECTOR_DIM,0);
@@ -41,13 +49,13 @@ void EndogenousMethod::SolveSampleEquation()
         SolutionObserver<state_type>(out_states,out_time));
     cout << "Calculated solution in " << steps << " steps \n";
 
-    SaveResults(out_states, out_time, "solution");
+    saveResults(out_states, out_time, "solution");
 }
 
-void EndogenousMethod::SolveSampleMatrixEquation()
+void EndogenousMethod::solveSampleMatrixEquation()
 {
     cout << "Going to solve sample matrix equation ..." << endl;
-    matrix_state_type S0(MATRIX_STATE_DIM1, MATRIX_STATE_DIM2);
+    matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
     SMatrixEquation sMatrixEQ;
     size_t steps;
     time_type start_time;
@@ -79,10 +87,10 @@ void EndogenousMethod::SolveSampleMatrixEquation()
         SolutionObserver<matrix_state_type>(out_states,out_time));
     cout << "Calculated solution in " << steps << " steps \n";
 
-    SaveResults(out_states, out_time, "matrixSolution");
+    saveResults(out_states, out_time, "matrixSolution");
 }
 
-void EndogenousMethod::SaveResults(const vector<state_type> out_states,
+void EndogenousMethod::saveResults(const vector<state_type> out_states,
         const vector<time_type> out_time,
         string filename)
 {
@@ -133,7 +141,7 @@ void EndogenousMethod::SaveResults(const vector<state_type> out_states,
     system("./plotSolution.sh");
 }
 
-void EndogenousMethod::SaveResults(const std::vector<matrix_state_type> out_states,
+void EndogenousMethod::saveResults(const std::vector<matrix_state_type> out_states,
         const std::vector<time_type> out_time,
         std::string filename)
 {
@@ -150,7 +158,12 @@ void EndogenousMethod::SaveResults(const std::vector<matrix_state_type> out_stat
             }
             x_out.push_back(x);
         }
-        SaveResults(x_out,out_time,
+        saveResults(x_out,out_time,
             filename+"_part"+boost::lexical_cast<std::string>(i));
     }
+}
+
+void EndogenousMethod::setLambdas(std::vector<double> lambdas)
+{
+    lambdaVec_ = lambdas;
 }

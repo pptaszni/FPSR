@@ -1,0 +1,1 @@
+sed 's/\\\[Eta\]1(t)/X[0]/g; s/\\\[Eta\]2(t)/X[1]/g; s/\\\[Phi\](t)/X[4]/g; s/\\\[Delta\](t)/X[5]/g; s/\\\[Theta\](t)/X[6]/g; s/Power/pow/g; s/Cos/cos/g; s/Sin/sin/g; s/Sec/sec/g; s/Tan/tan/g; s/R/R_/g; s/(a/(a_/g; s/m/m_/g; s/Iv/Iv_/g; s/Is/Is_/g; s/Iw/Iw_/g; s/\\\[Beta\]s/betaS_/g; s/\\\[Beta\]w/betaW_/g; s/u1(t)/u1/g; s/u2(t)/u2/g;'  $1

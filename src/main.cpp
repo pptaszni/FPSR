@@ -40,7 +40,7 @@ int main(){
     // delete c1;
 
     m1 = new EndogenousMethod;
-    m1->Start();
+    m1->start();
     delete m1;
 
     int argc=1;

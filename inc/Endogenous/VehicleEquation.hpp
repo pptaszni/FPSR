@@ -1,6 +1,7 @@
 #ifndef VEHICLEEQUATION
 #define VEHICLEEQUATION
 #include <boost/function.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
 #include "EquationCommon.hpp"
 
 class VehicleEquation
@@ -13,10 +14,18 @@ public:
         boost::function<double (time_type t)> in2);
     void setControlInput1(boost::function<double (time_type t)> in1);
     void setControlInput2(boost::function<double (time_type t)> in2);
+    void setControlInputsBasedOnLambdas();
+    void setLambdas(std::vector<double> lambdas);
+    double u1(time_type t);
+    double u2(time_type t);
+    boost::numeric::ublas::matrix<double> matrixA(state_type X, double u1, double u2);
+    boost::numeric::ublas::matrix<double> matrixBP(state_type X, time_type t);
 
 private:
-    boost::function<double (time_type t)> u1; // first control input [throttle]
-    boost::function<double (time_type t)> u2; // second control input [steering wheel momentum]
+    boost::function<double (time_type t)> u1_; // first control input [throttle]
+    boost::function<double (time_type t)> u2_; // second control input [steering wheel momentum]
+    double u1FromLambdas_(time_type t);
+    double u2FromLambdas_(time_type t);
     double sec(time_type t); // secans implementation
     double R_; // wheel radius
     double a_; // car length
@@ -26,13 +35,17 @@ private:
     double Iw_; // wheel moment of inertia
     double betaS_; // steering wheel friction coefficient
     double betaW_; // wheel friction coefficient
+    double omega_; // trigonometric base angular frequency
+    std::vector<double> lambdaVec_;
 };
 
 class SMatrixEquation
 {
 public:
+    SMatrixEquation();
     void operator() (const matrix_state_type &S,
         matrix_state_type &dSdt, const time_type t);
+    void setLambdas(std::vector<double> lambdas);
 private:
     VehicleEquation vehicleEquation_;
 };

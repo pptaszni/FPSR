@@ -6,6 +6,7 @@
 #define STATE_VECTOR_DIM 7
 #define MATRIX_STATE_DIM1 STATE_VECTOR_DIM
 #define MATRIX_STATE_DIM2 2
+#define LAMBDA_VECTOR_DIM 14
 
 typedef std::vector<double> state_type;
 typedef boost::numeric::ublas::matrix<double> matrix_state_type;
