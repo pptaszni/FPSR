@@ -40,7 +40,8 @@ int main(){
     // delete c1;
 
     m1 = new EndogenousMethod;
-    m1->start();
+    //m1->start();
+    m1->solveSampleMatrixEquation();
     delete m1;
 
     int argc=1;
