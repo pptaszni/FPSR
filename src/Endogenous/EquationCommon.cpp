@@ -1,11 +1,19 @@
 #include "EquationCommon.hpp"
 
-// SolutionObserver::SolutionObserver(std::vector<state_type> &states, std::vector<time_type> &time):
-//     out_states_(states), out_time_(time)
-// {}
+MatrixEquationWrapper::MatrixEquationWrapper(): eq_(NULL)
+{}
 
-// void SolutionObserver::operator()(const state_type &x, time_type t)
-// {
-//     out_states_.push_back(x);
-//     out_time_.push_back(t);
-// }
+void MatrixEquationWrapper::operator() (const matrix_state_type &x, matrix_state_type &dxdt, const time_type t)
+{
+    if (eq_ == NULL)
+    {
+        std::cerr << "Equation pointer is empty!" << std::endl;
+        return;
+    }
+    (*eq_)(x,dxdt,t);
+}
+
+void MatrixEquationWrapper::setEquation(EquationBase<matrix_state_type> *eq)
+{
+    eq_ = eq;
+}

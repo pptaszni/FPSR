@@ -30,5 +30,31 @@ struct SolutionObserver
     }
 };
 
+template <typename STATE_TYPE>
+class EquationBase
+{
+public:
+    virtual ~EquationBase() {}
+    /* Due to supposed bug in odeint this class is not abstract and operator() is not pure virtual */
+    virtual void operator() (const STATE_TYPE &x, STATE_TYPE &dxdt, const time_type t)
+    {
+        std::cerr << "EquationBase operator() should never be called!" << std::endl;
+    }
+    virtual void setLambdas(std::vector<double> lambdas)
+    {
+        std::cerr << "EquationBase setLambdas should never be called!" << std::endl;
+    }
+};
+
+class MatrixEquationWrapper
+{
+public:
+    MatrixEquationWrapper();
+    void operator() (const matrix_state_type &x, matrix_state_type &dxdt, const time_type t);
+    void setEquation(EquationBase<matrix_state_type> *eq);
+private:
+    EquationBase<matrix_state_type> *eq_;
+};
+
 
 #endif // EQUATIONCOMMON

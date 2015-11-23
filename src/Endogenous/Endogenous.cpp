@@ -28,8 +28,18 @@ EndogenousMethod::EndogenousMethod(): S_(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM), X
     abs_err_ = 1.0e-6;
     rel_err_ = 1.0e-3;
     finalErr_ = 0.1;
-    sEquation_.setLambdas(lambdaVec_);
+    sEquation_ = new SMatrixEquation;
+    sEquation_->setLambdas(lambdaVec_);
+    sEquationWrapper_.setEquation(sEquation_);
     C_ <<= 0,0,1,0,0,0,0,    0,0,0,1,0,0,0,    0,0,0,0,1,0,0;
+}
+
+EndogenousMethod::~EndogenousMethod()
+{
+    if (sEquation_ != NULL)
+    {
+        delete sEquation_;
+    }
 }
 
 void EndogenousMethod::start()
@@ -59,7 +69,7 @@ void EndogenousMethod::start()
             std::cout << lambda << ",";
         }
         std::cout << "\n";
-        sEquation_.setLambdas(newLambdas);
+        sEquation_->setLambdas(newLambdas);
         separateSAndX(calculateSMatrix());
         currentErr = calculateErr(X_);
         currentErrNorm = euclidNorm(currentErr);
@@ -99,7 +109,8 @@ void EndogenousMethod::solveSampleMatrixEquation()
 {
     cout << "Going to solve sample matrix equation ..." << endl;
     matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
-    SMatrixEquation sMatrixEQ;
+    SMatrixEquation *sMatrixEQ = new SMatrixEquation;
+    sEquationWrapper_.setEquation(sMatrixEQ);
     size_t steps;
     time_type start_time;
     time_type end_time;
@@ -126,11 +137,13 @@ void EndogenousMethod::solveSampleMatrixEquation()
 
     steps = odeint::integrate_adaptive(
         odeint::make_controlled<solver_type>(abs_err, rel_err),
-        sMatrixEQ, S0, start_time, end_time, interval,
+        sEquationWrapper_, S0, start_time, end_time, interval,
         SolutionObserver<matrix_state_type>(out_states,out_time));
     cout << "Calculated solution in " << steps << " steps \n";
 
     saveResults(out_states, out_time, "matrixSolution");
+    delete sMatrixEQ;
+    sEquationWrapper_.setEquation(NULL);
 }
 
 void EndogenousMethod::saveResults(const vector<state_type> out_states,
@@ -281,11 +294,12 @@ matrix_state_type EndogenousMethod::calculateSMatrix()
         }
     }
 
-    sEquation_.setLambdas(lambdaVec_);
+    sEquation_->setLambdas(lambdaVec_);
 
     steps = odeint::integrate_adaptive(
         odeint::make_controlled<solver_type>(abs_err_, rel_err_),
-        sEquation_, S0, start_time_, end_time_, interval_);
+        sEquationWrapper_,
+        S0, start_time_, end_time_, interval_);
     cout << "Calculated solution in " << steps << " steps \n";
 
     return S0;

@@ -10,7 +10,7 @@ class EndogenousMethod
 {
 public:
     EndogenousMethod();
-    ~EndogenousMethod() {}
+    ~EndogenousMethod();
     void start();
     void solveSampleEquation();
     void solveSampleMatrixEquation();
@@ -43,7 +43,8 @@ private:
     double abs_err_;
     double rel_err_;
     double finalErr_;
-    SMatrixEquation sEquation_;
+    EquationBase<matrix_state_type> *sEquation_;
+    MatrixEquationWrapper sEquationWrapper_;
     matrix_state_type S_; // matrix part solution of the SMatrix equation
     matrix_state_type C_; // y(x) = C.x
     state_type X_;
