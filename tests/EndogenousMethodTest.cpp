@@ -78,7 +78,7 @@ TEST_F(EndogenousMethodShould, splitResultsOfSMatrixEquationIntoAppripriateSMatr
     matrix_state_type S;
     state_type X;
 
-    extendedS = sut_.calculateSMatrix();
+    extendedS = sut_.resolveODEForSMatrix();
 
     ASSERT_EQ(LAMBDA_VECTOR_DIM+1, extendedS.size2());
     ASSERT_EQ(STATE_VECTOR_DIM, extendedS.size1());
@@ -116,7 +116,7 @@ TEST_F(EndogenousMethodShould, calculateJakobianWithAppropriateDimensions)
     matrix_state_type S;
     matrix_state_type Jakobian;
 
-    sut_.separateSAndX(sut_.calculateSMatrix());
+    sut_.separateSAndX(sut_.resolveODEForSMatrix());
     S = sut_.getS();
     Jakobian = sut_.calculateJakobian(S);
 

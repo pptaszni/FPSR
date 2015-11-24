@@ -17,30 +17,41 @@ using namespace boost::numeric;
 
 EndogenousMethod::EndogenousMethod(): S_(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM), X_(STATE_VECTOR_DIM), C_(Y_REF_DIM, STATE_VECTOR_DIM)
 {
-    lambdaVec_.assign(LAMBDA_VECTOR_DIM, 0.01);
-    yRef_.assign(Y_REF_DIM, 0);
-    yRef_[0] = 2.0;
-    yRef_[1] = 2.0;
-    gamma_ = 0.00001;
-    start_time_ = 0;
-    end_time_ = 10.0;
-    interval_ = 0.01;
-    abs_err_ = 1.0e-6;
-    rel_err_ = 1.0e-3;
-    finalErr_ = 0.1;
+    initParams_();
+
+    /* with default constructor VehicleEquation is solved */
     sEquation_ = new SMatrixEquation;
     sEquation_->setLambdas(lambdaVec_);
     sEquationWrapper_.setEquation(sEquation_);
     C_ <<= 0,0,1,0,0,0,0,    0,0,0,1,0,0,0,    0,0,0,0,1,0,0;
 }
 
-EndogenousMethod::~EndogenousMethod()
+EndogenousMethod::EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_state_type C): S_(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM), X_(STATE_VECTOR_DIM)
 {
-    if (sEquation_ != NULL)
-    {
-        delete sEquation_;
-    }
+    initParams_();
+
+    sEquation_ = eq;
+    sEquation_->setLambdas(lambdaVec_);
+    sEquationWrapper_.setEquation(sEquation_);
+    C_ = C;
 }
+
+void EndogenousMethod::initParams_()
+{
+    yRef_.assign(Y_REF_DIM, 1);
+    lambdaVec_.assign(LAMBDA_VECTOR_DIM, 0.01);
+    gamma_ = 0.001;
+
+    start_time_ = 0;
+    end_time_ = 10.0;
+    interval_ = 0.01; // just initial interval when using adaptive step solver
+    abs_err_ = 1.0e-6;
+    rel_err_ = 1.0e-3;
+    finalErr_ = 0.1; // considerably small, but not too much
+}
+
+EndogenousMethod::~EndogenousMethod()
+{}
 
 void EndogenousMethod::start()
 {
@@ -51,7 +62,7 @@ void EndogenousMethod::start()
     std::vector<double> newLambdas(LAMBDA_VECTOR_DIM);
     matrix_state_type inverseJakobian;
 
-    separateSAndX(calculateSMatrix());
+    separateSAndX(resolveODEForSMatrix());
     currentErr = calculateErr(X_);
     currentErrNorm = euclidNorm(currentErr);
 
@@ -70,11 +81,164 @@ void EndogenousMethod::start()
         }
         std::cout << "\n";
         sEquation_->setLambdas(newLambdas);
-        separateSAndX(calculateSMatrix());
+        separateSAndX(resolveODEForSMatrix());
         currentErr = calculateErr(X_);
         currentErrNorm = euclidNorm(currentErr);
     }
     std::cout << "Finished with err equal to: " << currentErrNorm << std::endl;
+}
+
+void EndogenousMethod::setLambdas(std::vector<double> lambdas)
+{
+    lambdaVec_ = lambdas;
+}
+
+void EndogenousMethod::setYRef(std::vector<double> yRef)
+{
+    if ( !(yRef.size() == yRef_.size() && yRef_.size() == Y_REF_DIM))
+        return;
+    yRef_[0] = yRef[0];
+    yRef_[1] = yRef[1];
+    yRef_[2] = yRef[2];
+}
+
+std::vector<double> EndogenousMethod::getLambdas()
+{
+    return lambdaVec_;
+}
+
+std::vector<double> EndogenousMethod::getYRef()
+{
+    return yRef_;
+}
+
+matrix_state_type EndogenousMethod::getS()
+{
+    return S_;
+}
+
+state_type EndogenousMethod::getX()
+{
+    return X_;
+}
+
+std::vector<double> EndogenousMethod::calculateErr(state_type X)
+{
+    std::vector<double> err(Y_REF_DIM);
+
+    err[0] = X[2] - yRef_[0];
+    err[1] = X[3] - yRef_[1];
+    err[2] = X[4] - yRef_[2];
+
+    return err;
+}
+
+double EndogenousMethod::euclidNorm(state_type X)
+{
+    double sum = 0;
+
+    for (int i=0; i<X.size(); i++)
+    {
+        sum += X[i]*X[i];
+    }
+
+    return std::sqrt(sum);
+}
+
+matrix_state_type EndogenousMethod::resolveODEForSMatrix()
+{
+    matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
+    size_t steps;
+    typedef odeint::runge_kutta_dopri5<matrix_state_type> solver_type;
+
+    for (int i=0; i<S0.size1(); i++)
+    {
+        for (int j=0; j<S0.size2(); j++)
+        {
+            S0(i,j) = 0;
+        }
+    }
+
+    sEquation_->setLambdas(lambdaVec_);
+
+    steps = odeint::integrate_adaptive(
+        odeint::make_controlled<solver_type>(abs_err_, rel_err_),
+        sEquationWrapper_,
+        S0, start_time_, end_time_, interval_);
+    cout << "Calculated solution in " << steps << " steps \n";
+
+    return S0;
+}
+
+void EndogenousMethod::separateSAndX(matrix_state_type SX)
+{
+    if (SX.size1() != X_.size() || SX.size2() < S_.size2()+1)
+        return;
+
+    for (int i=0; i<S_.size2(); i++)
+    {
+        column(S_, i) = column(SX, i);
+    }
+
+    for (int i=0; i<X_.size(); i++)
+    {
+        X_[i] = SX(i,SX.size2()-1);
+    }
+}
+
+matrix_state_type EndogenousMethod::calculateJakobian(matrix_state_type S)
+{
+    return ublas::prod(C_,S);
+}
+
+matrix_state_type EndogenousMethod::moorePenroseInverse(matrix_state_type mat)
+{
+    typedef ublas::permutation_matrix<std::size_t> pmatrix;
+    matrix_state_type transMat(mat.size2(), mat.size1());
+    matrix_state_type prodMat(mat.size1(), mat.size1());
+    matrix_state_type inverseMat(mat.size1(), mat.size1());
+
+    transMat = ublas::trans(mat);
+    prodMat = ublas::prod(mat, transMat);
+    pmatrix pm(prodMat.size1());
+    // perform LU-factorization
+    int res = ublas::lu_factorize(prodMat, pm);
+    if (res != 0)
+    {
+        std::cerr << "Sth wrong with factorisation \n";
+    }
+    // create identity matrix of "inverse"
+    inverseMat.assign(ublas::identity_matrix<double> (prodMat.size1()));
+    // backsubstitute to get the inverse
+    ublas::lu_substitute(prodMat, pm, inverseMat);
+
+    return ublas::prod(transMat, inverseMat);
+}
+
+std::vector<double> EndogenousMethod::calculateNewLambdas(matrix_state_type inverseJakobian, std::vector<double> err)
+{
+    ublas::vector<double> ublasErr(err.size());
+    ublas::vector<double> inverseJakobianErr;
+    std::vector<double> newLambdas(LAMBDA_VECTOR_DIM);
+
+    for (int i=0; i<err.size(); i++)
+    {
+        ublasErr[i] = err[i];
+    }
+
+    inverseJakobianErr = ublas::prod(inverseJakobian, ublasErr);
+
+    if (inverseJakobianErr.size() != LAMBDA_VECTOR_DIM)
+    {
+        std:cerr << "Sth wrong with matrix-vector multiplication \n";
+    }
+
+    for (int i=0; i<LAMBDA_VECTOR_DIM; i++)
+    {
+        newLambdas[i] = lambdaVec_[i] - gamma_*inverseJakobianErr(i);
+    }
+
+    return newLambdas;
 }
 
 void EndogenousMethod::solveSampleEquation()
@@ -109,8 +273,8 @@ void EndogenousMethod::solveSampleMatrixEquation()
 {
     cout << "Going to solve sample matrix equation ..." << endl;
     matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
-    SMatrixEquation *sMatrixEQ = new SMatrixEquation;
-    sEquationWrapper_.setEquation(sMatrixEQ);
+    //SMatrixEquation *sMatrixEQ = new SMatrixEquation;
+    //sEquationWrapper_.setEquation(sMatrixEQ);
     size_t steps;
     time_type start_time;
     time_type end_time;
@@ -142,8 +306,8 @@ void EndogenousMethod::solveSampleMatrixEquation()
     cout << "Calculated solution in " << steps << " steps \n";
 
     saveResults(out_states, out_time, "matrixSolution");
-    delete sMatrixEQ;
-    sEquationWrapper_.setEquation(NULL);
+    //delete sMatrixEQ;
+    //sEquationWrapper_.setEquation(NULL);
 }
 
 void EndogenousMethod::saveResults(const vector<state_type> out_states,
@@ -217,158 +381,4 @@ void EndogenousMethod::saveResults(const std::vector<matrix_state_type> out_stat
         saveResults(x_out,out_time,
             filename+"_part"+boost::lexical_cast<std::string>(i));
     }
-}
-
-void EndogenousMethod::setLambdas(std::vector<double> lambdas)
-{
-    lambdaVec_ = lambdas;
-}
-
-std::vector<double> EndogenousMethod::getLambdas()
-{
-    return lambdaVec_;
-}
-
-void EndogenousMethod::setYRef(std::vector<double> yRef)
-{
-    if ( !(yRef.size() == yRef_.size() && yRef_.size() == Y_REF_DIM))
-        return;
-    yRef_[0] = yRef[0];
-    yRef_[1] = yRef[1];
-    yRef_[2] = yRef[2];
-}
-
-std::vector<double> EndogenousMethod::getYRef()
-{
-    return yRef_;
-}
-
-std::vector<double> EndogenousMethod::calculateErr(state_type X)
-{
-    std::vector<double> err(Y_REF_DIM);
-
-    err[0] = X[2] - yRef_[0];
-    err[1] = X[3] - yRef_[1];
-    err[2] = X[4] - yRef_[2];
-
-    return err;
-}
-
-void EndogenousMethod::separateSAndX(matrix_state_type SX)
-{
-    if (SX.size1() != X_.size() || SX.size2() < S_.size2()+1)
-        return;
-
-    for (int i=0; i<S_.size2(); i++)
-    {
-        column(S_, i) = column(SX, i);
-    }
-
-    for (int i=0; i<X_.size(); i++)
-    {
-        X_[i] = SX(i,SX.size2()-1);
-    }
-}
-
-matrix_state_type EndogenousMethod::getS()
-{
-    return S_;
-}
-
-state_type EndogenousMethod::getX()
-{
-    return X_;
-}
-
-matrix_state_type EndogenousMethod::calculateSMatrix()
-{
-    matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
-    size_t steps;
-    typedef odeint::runge_kutta_dopri5<matrix_state_type> solver_type;
-
-    for (int i=0; i<S0.size1(); i++)
-    {
-        for (int j=0; j<S0.size2(); j++)
-        {
-            S0(i,j) = 0;
-        }
-    }
-
-    sEquation_->setLambdas(lambdaVec_);
-
-    steps = odeint::integrate_adaptive(
-        odeint::make_controlled<solver_type>(abs_err_, rel_err_),
-        sEquationWrapper_,
-        S0, start_time_, end_time_, interval_);
-    cout << "Calculated solution in " << steps << " steps \n";
-
-    return S0;
-}
-
-matrix_state_type EndogenousMethod::calculateJakobian(matrix_state_type S)
-{
-    return ublas::prod(C_,S);
-}
-
-matrix_state_type EndogenousMethod::moorePenroseInverse(matrix_state_type mat)
-{
-    typedef ublas::permutation_matrix<std::size_t> pmatrix;
-    matrix_state_type transMat(mat.size2(), mat.size1());
-    matrix_state_type prodMat(mat.size1(), mat.size1());
-    matrix_state_type inverseMat(mat.size1(), mat.size1());
-
-    transMat = ublas::trans(mat);
-    prodMat = ublas::prod(mat, transMat);
-    pmatrix pm(prodMat.size1());
-    // perform LU-factorization
-    int res = ublas::lu_factorize(prodMat, pm);
-    if (res != 0)
-    {
-        std::cerr << "Sth wrong with factorisation \n";
-    }
-    // create identity matrix of "inverse"
-    inverseMat.assign(ublas::identity_matrix<double> (prodMat.size1()));
-    // backsubstitute to get the inverse
-    ublas::lu_substitute(prodMat, pm, inverseMat);
-
-    return ublas::prod(transMat, inverseMat);
-}
-
-double EndogenousMethod::euclidNorm(state_type X)
-{
-    double sum = 0;
-
-    for (int i=0; i<X.size(); i++)
-    {
-        sum += X[i]*X[i];
-    }
-
-    return std::sqrt(sum);
-}
-
-
-std::vector<double> EndogenousMethod::calculateNewLambdas(matrix_state_type inverseJakobian, std::vector<double> err)
-{
-    ublas::vector<double> ublasErr(err.size());
-    ublas::vector<double> inverseJakobianErr;
-    std::vector<double> newLambdas(LAMBDA_VECTOR_DIM);
-
-    for (int i=0; i<err.size(); i++)
-    {
-        ublasErr[i] = err[i];
-    }
-
-    inverseJakobianErr = ublas::prod(inverseJakobian, ublasErr);
-
-    if (inverseJakobianErr.size() != LAMBDA_VECTOR_DIM)
-    {
-        std:cerr << "Sth wrong with matrix-vector multiplication \n";
-    }
-
-    for (int i=0; i<LAMBDA_VECTOR_DIM; i++)
-    {
-        newLambdas[i] = lambdaVec_[i] - gamma_*inverseJakobianErr(i);
-    }
-
-    return newLambdas;
 }

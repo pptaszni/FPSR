@@ -35,15 +35,8 @@ class EquationBase
 {
 public:
     virtual ~EquationBase() {}
-    /* Due to supposed bug in odeint this class is not abstract and operator() is not pure virtual */
-    virtual void operator() (const STATE_TYPE &x, STATE_TYPE &dxdt, const time_type t)
-    {
-        std::cerr << "EquationBase operator() should never be called!" << std::endl;
-    }
-    virtual void setLambdas(std::vector<double> lambdas)
-    {
-        std::cerr << "EquationBase setLambdas should never be called!" << std::endl;
-    }
+    virtual void operator() (const STATE_TYPE &x, STATE_TYPE &dxdt, const time_type t) = 0;
+    virtual void setLambdas(std::vector<double> lambdas) = 0;
 };
 
 class MatrixEquationWrapper

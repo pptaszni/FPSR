@@ -5,6 +5,7 @@
 #include "RS232Connector.hpp"
 #include "Endogenous.hpp"
 
+/* CUDA training */
 int startSample(int argc, char **argv);
 void reduceSample();
 void blellochSample();
@@ -12,52 +13,23 @@ void radixSortSample();
 void fastHistogramSample();
 void poissonBlendingSample();
 
-
-
-int boostTestFunction()
+void runEndogenous()
 {
-    std::string line;
-    boost::regex pat( "^Subject: (Re: |Aw: )*(.*)" );
+    SMatrixEquation *eq = new SMatrixEquation;
+    matrix_state_type C(Y_REF_DIM, STATE_VECTOR_DIM);
+    EndogenousMethod *met = new EndogenousMethod(eq, C);
 
-    while (std::cin)
-    {
-        std::getline(std::cin, line);
-        boost::smatch matches;
-        if (boost::regex_match(line, matches, pat))
-            std::cout << matches[2] << std::endl;
-    }
+    met->solveSampleMatrixEquation();
+
+    delete met; // deleting met first prevents possible eq pointer usage
+    delete eq;
 }
 
 int main(){
 
     std::cout << "Hello FPSR team. Feel free to develop this app\n";
 
-    // RS232Connector *c1;
-    EndogenousMethod *m1;
-
-    // c1 = new RS232Connector;
-    // c1->sendByte('d');
-    // delete c1;
-
-    m1 = new EndogenousMethod;
-    //m1->start();
-    m1->solveSampleMatrixEquation();
-    delete m1;
-
-    int argc=1;
-    char **argv;
-    /*
-    argv = (char**)malloc(sizeof(char*));
-    argv[0] = "simpleSurfaceWrite";
-    startSample(argc,argv);
-    free(argv);
-    */
-    //reduceSample();
-    //blellochSample();
-    //radixSortSample();
-    //fastHistogramSample();
-    //poissonBlendingSample();
-    //boostTestFunction();
+    runEndogenous();
 
     return 0;
 }

@@ -10,6 +10,9 @@ build/Makefile: build
 build/src/main: build/Makefile
 	cd build && make
 
+build/tests/ut: build/Makefile
+	cd build && make
+
 
 # available commands:
 compile: build/src/main
