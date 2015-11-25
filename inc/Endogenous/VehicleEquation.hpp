@@ -20,8 +20,10 @@ public:
     double u2(time_type t);
     boost::numeric::ublas::matrix<double> matrixA(state_type X, double u1, double u2);
     boost::numeric::ublas::matrix<double> matrixBP(state_type X, time_type t);
+    boost::numeric::ublas::matrix<double> matrixP(time_type t);
 
 private:
+    const int numberOfControlInputs_;
     boost::function<double (time_type t)> u1_; // first control input [throttle]
     boost::function<double (time_type t)> u2_; // second control input [steering wheel momentum]
     double u1FromLambdas_(time_type t);

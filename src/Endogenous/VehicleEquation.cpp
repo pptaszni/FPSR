@@ -11,7 +11,7 @@
 using namespace boost::numeric::ublas;
 using namespace std;
 
-VehicleEquation::VehicleEquation()
+VehicleEquation::VehicleEquation(): numberOfControlInputs_(2)
 {
     R_ = 0.1;
     a_ = 1;
@@ -42,12 +42,27 @@ VehicleEquation::VehicleEquation()
 void VehicleEquation::operator() (const state_type &x, state_type &dxdt, const time_type t)
 {
     if (x.size() != STATE_VECTOR_DIM) return;
-    dxdt[0] = (pow(cos(x[5]),4)*(8*pow(a_,2)*u1(t) - 8*pow(a_,2)*betaW_*x[0] - 2*pow(R_,2)*pow(sec(x[5]),2)*(-4*Iv_ + 3*pow(a_,2)*m_ + 2*(4*Iv_ + pow(a_,2)*m_)*pow(sec(x[5]),2))*tan(x[5])*x[0]*x[1]))/(3*pow(a_,2)*Iw_ + (4*Iv_ + 5*pow(a_,2)*m_)*pow(R_,2) + (-4*Iv_*pow(R_,2) + pow(a_,2)*(4*Iw_ + 3*m_*pow(R_,2)))*cos(2*x[5]) + pow(a_,2)*Iw_*cos(4*x[5]));
+    /* We cannot allow to turn the steering wheel for PI/2 */
+    double maxDelta = (M_PI/2) - 0.1;
+    double minDelta = (-M_PI/2) + 0.1;
+    double delta = x[5];
+    double eta2 = x[1];
+    if (delta > maxDelta && eta2 > 0)
+    {
+        delta = maxDelta;
+        eta2 = 0;
+    }
+    else if (delta < minDelta && eta2 < 0)
+    {
+        delta = minDelta;
+        eta2 = 0;
+    }
+    dxdt[0] = (pow(cos(delta),4)*(8*pow(a_,2)*u1(t) - 8*pow(a_,2)*betaW_*x[0] - 2*pow(R_,2)*pow(sec(delta),2)*(-4*Iv_ + 3*pow(a_,2)*m_ + 2*(4*Iv_ + pow(a_,2)*m_)*pow(sec(delta),2))*tan(delta)*x[0]*x[1]))/(3*pow(a_,2)*Iw_ + (4*Iv_ + 5*pow(a_,2)*m_)*pow(R_,2) + (-4*Iv_*pow(R_,2) + pow(a_,2)*(4*Iw_ + 3*m_*pow(R_,2)))*cos(2*delta) + pow(a_,2)*Iw_*cos(4*delta));
     dxdt[1] = (u2(t) - betaS_*x[1])/Is_;
-    dxdt[2] = (R_*sec(x[5])*(2*cos(x[4]) - sin(x[4])*tan(x[5]))*x[0])/2.0;
-    dxdt[3] = (R_*sec(x[5])*(2*sin(x[4]) + cos(x[4])*tan(x[5]))*x[0])/2.0;
-    dxdt[4] = (R_*sec(x[5])*tan(x[5])*x[0])/a_;
-    dxdt[5] = x[1];
+    dxdt[2] = (R_*sec(delta)*(2*cos(x[4]) - sin(x[4])*tan(delta))*x[0])/2.0;
+    dxdt[3] = (R_*sec(delta)*(2*sin(x[4]) + cos(x[4])*tan(delta))*x[0])/2.0;
+    dxdt[4] = (R_*sec(delta)*tan(delta)*x[0])/a_;
+    dxdt[5] = eta2;
     dxdt[6] = x[0];
 }
 
@@ -100,6 +115,8 @@ double VehicleEquation::u2(time_type t)
 matrix<double> VehicleEquation::matrixA(state_type X, double u1, double u2)
 {
     matrix<double> A(STATE_VECTOR_DIM, STATE_VECTOR_DIM);
+    u1=0.0;
+    u2=0.0;
 
     A <<= (pow(cos(X[5]),4)*(-8*pow(a_,2)*betaW_-2*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*tan(X[5])*X[1]))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(-2*pow(R_,2)*cos(X[5])*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*sin(X[5])*X[0])/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,0,(-4*pow(cos(X[5]),3)*sin(X[5])*(8*pow(a_,2)*u1-8*pow(a_,2)*betaW_*X[0]-2*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*tan(X[5])*X[0]*X[1]))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5]))-(pow(cos(X[5]),4)*(-2*(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*sin(2*X[5])-4*pow(a_,2)*Iw_*sin(4*X[5]))*(8*pow(a_,2)*u1-8*pow(a_,2)*betaW_*X[0]-2*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*tan(X[5])*X[0]*X[1]))/pow(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5]),2)+(pow(cos(X[5]),4)*(-2*pow(R_,2)*pow(sec(X[5]),4)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*X[0]*X[1]-8*(4*Iv_+pow(a_,2)*m_)*pow(R_,2)*pow(sec(X[5]),4)*pow(tan(X[5]),2)*X[0]*X[1]-4*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*pow(tan(X[5]),2)*X[0]*X[1]))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,-(betaS_/Is_),0,0,0,0,0,(R_*sec(X[5])*(2*cos(X[4])-sin(X[4])*tan(X[5])))/2.,0,0,0,(R_*sec(X[5])*(-2*sin(X[4])-cos(X[4])*tan(X[5]))*X[0])/2.0,-(R_*pow(sec(X[5]),3)*sin(X[4])*X[0])/2.+(R_*sec(X[5])*tan(X[5])*(2*cos(X[4])-sin(X[4])*tan(X[5]))*X[0])/2.,0,(R_*sec(X[5])*(2*sin(X[4])+cos(X[4])*tan(X[5])))/2.,0,0,0,(R_*sec(X[5])*(2*cos(X[4])-sin(X[4])*tan(X[5]))*X[0])/2.,(R_*cos(X[4])*pow(sec(X[5]),3)*X[0])/2.+(R_*sec(X[5])*tan(X[5])*(2*sin(X[4])+cos(X[4])*tan(X[5]))*X[0])/2.,0,(R_*sec(X[5])*tan(X[5]))/a_,0,0,0,0,(R_*pow(sec(X[5]),3)*X[0])/a_+(R_*sec(X[5])*pow(tan(X[5]),2)*X[0])/a_,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0;
 
@@ -113,6 +130,26 @@ matrix<double> VehicleEquation::matrixBP(state_type X, time_type t)
     BP <<= (8*pow(a_,2)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*pow(cos(X[5]),4)*sin(t*omega_))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*cos(t*omega_)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*pow(cos(X[5]),4)*sin(2*t*omega_))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*cos(2*t*omega_)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*pow(cos(X[5]),4)*sin(3*t*omega_))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*cos(3*t*omega_)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/Is_,sin(t*omega_)/Is_,cos(t*omega_)/Is_,sin(2*t*omega_)/Is_,cos(2*t*omega_)/Is_,sin(3*t*omega_)/Is_,cos(3*t*omega_)/Is_,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
 
     return BP;
+}
+
+matrix<double> VehicleEquation::matrixP(time_type t)
+{
+    matrix<double> P(numberOfControlInputs_, LAMBDA_VECTOR_DIM, 0);
+    int sinLength = (LAMBDA_VECTOR_DIM-numberOfControlInputs_)/numberOfControlInputs_;
+    P(0,0) = 1;
+    P(1,LAMBDA_VECTOR_DIM/2) = 1;
+    for (int j=1; j<=sinLength; j++)
+    {
+        if (j%2 == 1)
+        {
+            P(0,j) = sin(static_cast<time_type>(((j+2-1)/2))*omega_*t); // ceiling division
+        }
+        else
+        {
+            P(0,j) = cos(static_cast<time_type>((j/2))*omega_*t); // floor division
+        }
+    }
+    return P;
 }
 
 double VehicleEquation::u1FromLambdas_(time_type t)

@@ -39,6 +39,7 @@ public:
     void saveResults(const std::vector<matrix_state_type> out_states,
         const std::vector<time_type> out_time,
         std::string filename);
+    void resolveODEForSMatrixAndStoreResults();
 
 private:
     void initParams_();

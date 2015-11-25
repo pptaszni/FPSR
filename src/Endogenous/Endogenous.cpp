@@ -39,7 +39,9 @@ EndogenousMethod::EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_s
 void EndogenousMethod::initParams_()
 {
     yRef_.assign(Y_REF_DIM, 1);
-    lambdaVec_.assign(LAMBDA_VECTOR_DIM, 0.01);
+    yRef_[0] = 5;
+    yRef_[1] = 5;
+    lambdaVec_.assign(LAMBDA_VECTOR_DIM, 2);
     gamma_ = 0.001;
 
     start_time_ = 0;
@@ -84,8 +86,10 @@ void EndogenousMethod::start()
         separateSAndX(resolveODEForSMatrix());
         currentErr = calculateErr(X_);
         currentErrNorm = euclidNorm(currentErr);
+        iterNum++;
     }
     std::cout << "Finished with err equal to: " << currentErrNorm << std::endl;
+    resolveODEForSMatrixAndStoreResults();
 }
 
 void EndogenousMethod::setLambdas(std::vector<double> lambdas)
@@ -245,7 +249,11 @@ void EndogenousMethod::solveSampleEquation()
 {
     cout << "Going to solve sample equation ..." << endl;
     state_type x0(STATE_VECTOR_DIM,0);
+    const double arr[] = {1.86516,1.61768,0.337301,1.02993,0.0732048,0.486566,0.297225,0.153569,-0.637794,0.365101,0.483851,2.08468,1.42237,1.61822};
+    std::vector<double> lambdas(arr, arr+sizeof(arr)/sizeof(arr[0]));
     VehicleEquation vehicleEQ;
+    vehicleEQ.setLambdas(lambdas);
+    vehicleEQ.setControlInputsBasedOnLambdas();
     size_t steps;
     time_type start_time;
     time_type end_time;
@@ -381,4 +389,30 @@ void EndogenousMethod::saveResults(const std::vector<matrix_state_type> out_stat
         saveResults(x_out,out_time,
             filename+"_part"+boost::lexical_cast<std::string>(i));
     }
+}
+
+void EndogenousMethod::resolveODEForSMatrixAndStoreResults()
+{
+    matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
+    size_t steps;
+    typedef odeint::runge_kutta_dopri5<matrix_state_type> solver_type;
+    vector<matrix_state_type> out_states;
+    vector<time_type> out_time;
+
+    for (int i=0; i<S0.size1(); i++)
+    {
+        for (int j=0; j<S0.size2(); j++)
+        {
+            S0(i,j) = 0;
+        }
+    }
+
+    sEquation_->setLambdas(lambdaVec_);
+
+    steps = odeint::integrate_adaptive(
+        odeint::make_controlled<solver_type>(abs_err_, rel_err_),
+        sEquationWrapper_, S0, start_time_, end_time_, interval_,
+        SolutionObserver<matrix_state_type>(out_states,out_time));
+    cout << "Calculated solution in " << steps << " steps. Going to store results ... \n";
+    saveResults(out_states, out_time, "matrixSolution");
 }

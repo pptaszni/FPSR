@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string>
 #include <boost/regex.hpp>
+#include <boost/numeric/ublas/assignment.hpp>
 #include "RS232Connector.hpp"
 #include "Endogenous.hpp"
 
@@ -17,9 +18,11 @@ void runEndogenous()
 {
     SMatrixEquation *eq = new SMatrixEquation;
     matrix_state_type C(Y_REF_DIM, STATE_VECTOR_DIM);
+    C <<= 0,0,1,0,0,0,0,    0,0,0,1,0,0,0,    0,0,0,0,1,0,0;
     EndogenousMethod *met = new EndogenousMethod(eq, C);
 
-    met->solveSampleMatrixEquation();
+    //met->solveSampleMatrixEquation();
+    met->start();
 
     delete met; // deleting met first prevents possible eq pointer usage
     delete eq;
