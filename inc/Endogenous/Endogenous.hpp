@@ -23,7 +23,7 @@ public:
     matrix_state_type getS();
     state_type getX();
 
-    std::vector<double> calculateErr(state_type X);
+    state_type calculateErr(state_type X);
     double euclidNorm(state_type);
     matrix_state_type resolveODEForSMatrix();
     void separateSAndX(matrix_state_type SX);
@@ -34,6 +34,8 @@ public:
     void solveSampleEquation();
     void solveSampleMatrixEquation();
 
+    void saveResults(const std::vector<state_type> out_states,
+        std::string filename);
     void saveResults(const std::vector<state_type> out_states,
         const std::vector<time_type> out_time,
         std::string filename);
@@ -67,6 +69,7 @@ private:
     matrix_state_type S_; // matrix part solution of the SMatrix equation
     state_type X_;
     matrix_state_type C_; // y(x) = C.x
+    std::vector<state_type> histErr_;
 };
 
 #endif // ENDOGENOUS

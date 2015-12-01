@@ -50,7 +50,7 @@ void EndogenousMethod::initParams_()
     yRef_[0] = 5;
     yRef_[1] = 5;
 
-    gamma_ = 0.01;
+    gamma_ = 0.007;
     start_time_ = 0;
     end_time_ = 10.0;
     interval_ = 0.01; // just initial interval when using adaptive step solver
@@ -69,15 +69,17 @@ void EndogenousMethod::start()
         cerr << "No equation has been set. Endogenous Method aborted!" << endl;
     }
     cout << "EndogenousMethod starts ..." << endl;
-    std::vector<double> currentErr;
+    state_type currentErr;
     double currentErrNorm;
     int iterNum = 0;
     std::vector<double> newLambdas(numLambdas_);
     matrix_state_type inverseJakobian;
 
+    histErr_.clear();
     sEquation_->setLambdas(lambdaVec_);
     separateSAndX(resolveODEForSMatrix());
     currentErr = calculateErr(X_);
+    histErr_.push_back(currentErr);
     currentErrNorm = euclidNorm(currentErr);
 
     while (currentErrNorm > finalErr_)
@@ -97,11 +99,13 @@ void EndogenousMethod::start()
         sEquation_->setLambdas(newLambdas);
         separateSAndX(resolveODEForSMatrix());
         currentErr = calculateErr(X_);
+        histErr_.push_back(currentErr);
         currentErrNorm = euclidNorm(currentErr);
         iterNum++;
     }
     std::cout << "Finished with err equal to: " << currentErrNorm << std::endl;
     resolveODEForSMatrixAndStoreResults();
+    saveResults(histErr_, "err");
 }
 
 void EndogenousMethod::setLambdas(std::vector<double> lambdas)
@@ -145,9 +149,9 @@ state_type EndogenousMethod::getX()
     return X_;
 }
 
-std::vector<double> EndogenousMethod::calculateErr(state_type X)
+state_type EndogenousMethod::calculateErr(state_type X)
 {
-    std::vector<double> err(numY_);
+    state_type err(numY_);
     ublas::vector<double, state_type> xBlas(X); // stupid type conversion, should be unified in the future
     ublas::vector<double> y = prod(C_, xBlas);
 
@@ -339,6 +343,17 @@ void EndogenousMethod::solveSampleMatrixEquation()
     cout << "Calculated solution in " << steps << " steps \n";
 
     saveResults(out_states, out_time, "matrixSolution");
+}
+
+void EndogenousMethod::saveResults(const vector<state_type> out_states,
+        string filename)
+{
+    std::vector<time_type> t;
+    for (int i=0; i<out_states.size(); i++)
+    {
+        t.push_back(i);
+    }
+    saveResults(out_states, t, filename);
 }
 
 void EndogenousMethod::saveResults(const vector<state_type> out_states,
