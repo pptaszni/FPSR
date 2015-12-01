@@ -9,14 +9,33 @@
 
 #include "Endogenous.hpp"
 
+#define STATE_VECTOR_DIM 7
+#define LAMBDA_VECTOR_DIM 14
+#define Y_REF_DIM 3
+
 using namespace boost::numeric::ublas;
 
 class EndogenousMethodShould: public testing::Test
 {
 public:
+    EndogenousMethodShould()
+    {
+        matrix_state_type C(Y_REF_DIM, STATE_VECTOR_DIM);
+        C <<= 0,0,1,0,0,0,0,    0,0,0,1,0,0,0,    0,0,0,0,1,0,0;
+        sut_ = EndogenousMethod(NULL, C, LAMBDA_VECTOR_DIM);
+    }
     virtual void SetUp()
-    {}
+    {
+        eq = new SMatrixEquation(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM);
+        sut_.setEquation(eq);
+    }
+    virtual void TearDown()
+    {
+        delete eq;
+        sut_.setEquation(NULL);
+    }
     EndogenousMethod sut_;
+    SMatrixEquation *eq;
 };
 
 TEST_F(EndogenousMethodShould, returnLambdasVectorEqualToTheOneThatWasSet)
@@ -36,6 +55,7 @@ TEST_F(EndogenousMethodShould, returnYRefVectorEqualToTheOneThatWasSet)
 
     sut_.setYRef(expectedYRef);
     yRef = sut_.getYRef();
+    ASSERT_EQ(expectedYRef.size(), yRef.size());
     ASSERT_EQ(expectedYRef, yRef);
 }
 
@@ -46,7 +66,10 @@ TEST_F(EndogenousMethodShould, failToSetYRefWithWrongDimension)
 
     sut_.setYRef(expectedYRef);
     yRef = sut_.getYRef();
-    ASSERT_NE(expectedYRef[0], yRef[0]);
+    if (yRef.size() != 0)
+    {
+        ASSERT_NE(expectedYRef[0], yRef[0]);
+    }
 }
 
 TEST_F(EndogenousMethodShould, returnCorrectErrVec)

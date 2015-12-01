@@ -10,12 +10,13 @@ class EndogenousMethod
 {
 public:
     EndogenousMethod();
-    EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_state_type C);
+    EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_state_type C, int numLambdas);
     ~EndogenousMethod();
     void start();
 
     void setLambdas(std::vector<double> lambdas);
     void setYRef(std::vector<double> yRef);
+    void setEquation(EquationBase<matrix_state_type> *eq);
 
     std::vector<double> getLambdas();
     std::vector<double> getYRef();
@@ -44,7 +45,11 @@ public:
 private:
     void initParams_();
 
-    std::vector<double> yRef_; // [x,y,phi]
+    int numStates_;
+    int numLambdas_;
+    int numY_;
+
+    std::vector<double> yRef_; // default is [x,y,phi]
     std::vector<double> lambdaVec_;
     double gamma_; // convergence speed
 

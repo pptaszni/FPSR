@@ -11,8 +11,26 @@
 using namespace boost::numeric::ublas;
 using namespace std;
 
-VehicleEquation::VehicleEquation(): numberOfControlInputs_(2)
+VehicleEquation::VehicleEquation(): VehicleEquation(7,14)
+{}
+
+VehicleEquation::VehicleEquation(int numStates, int numLambdas):
+    numberOfControlInputs_(2),
+    numStates_(numStates),
+    numLambdas_(numLambdas)
 {
+    if (numStates_ != 7)
+    {
+        cerr << "This equation should have number of states equal to 7, but "
+            << numStates_ << " is given!" << endl;
+        cerr << "The program will probably crash!" << endl;
+    }
+    if (numLambdas_ < 2 || numLambdas_%2 != 0)
+    {
+        cerr << "Number of lambdas should be greater than 2 and even. "
+            << numLambdas_ << " is given!" << endl;
+        cerr << "The program will probably crash!" << endl;
+    }
     R_ = 0.1;
     a_ = 1;
     m_ = 100;
@@ -36,12 +54,12 @@ VehicleEquation::VehicleEquation(): numberOfControlInputs_(2)
         u2_ = [] (time_type t) -> double { return 0; };
     }
 
-    lambdaVec_.assign(LAMBDA_VECTOR_DIM, 0.01); // small lambdas are prefered
+    lambdaVec_.assign(numLambdas, 0.01); // small lambdas are prefered
 }
 
 void VehicleEquation::operator() (const state_type &x, state_type &dxdt, const time_type t)
 {
-    if (x.size() != STATE_VECTOR_DIM) return;
+    if (x.size() != numStates_) return;
     /* We cannot allow to turn the steering wheel for PI/2 */
     double maxDelta = (M_PI/2) - 0.1;
     double minDelta = (-M_PI/2) + 0.1;
@@ -94,9 +112,10 @@ void VehicleEquation::setControlInputsBasedOnLambdas()
 
 void VehicleEquation::setLambdas(std::vector<double> lambdas)
 {
-    if (lambdas.size() != LAMBDA_VECTOR_DIM)
+    if (lambdas.size() != numLambdas_)
     {
-        cerr << "Wrong lambda dim" << endl;
+        cerr << "Wrong lambda dim! " << "Should be " << numLambdas_
+            << " but is " << lambdas.size() << endl;
         return;
     }
     lambdaVec_ = lambdas;
@@ -114,47 +133,55 @@ double VehicleEquation::u2(time_type t)
 
 matrix<double> VehicleEquation::matrixA(state_type X, double u1, double u2)
 {
-    matrix<double> A(STATE_VECTOR_DIM, STATE_VECTOR_DIM);
-    u1=0.0;
-    u2=0.0;
+    matrix<double> A(numStates_, numStates_);
 
     A <<= (pow(cos(X[5]),4)*(-8*pow(a_,2)*betaW_-2*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*tan(X[5])*X[1]))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(-2*pow(R_,2)*cos(X[5])*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*sin(X[5])*X[0])/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,0,(-4*pow(cos(X[5]),3)*sin(X[5])*(8*pow(a_,2)*u1-8*pow(a_,2)*betaW_*X[0]-2*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*tan(X[5])*X[0]*X[1]))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5]))-(pow(cos(X[5]),4)*(-2*(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*sin(2*X[5])-4*pow(a_,2)*Iw_*sin(4*X[5]))*(8*pow(a_,2)*u1-8*pow(a_,2)*betaW_*X[0]-2*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*tan(X[5])*X[0]*X[1]))/pow(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5]),2)+(pow(cos(X[5]),4)*(-2*pow(R_,2)*pow(sec(X[5]),4)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*X[0]*X[1]-8*(4*Iv_+pow(a_,2)*m_)*pow(R_,2)*pow(sec(X[5]),4)*pow(tan(X[5]),2)*X[0]*X[1]-4*pow(R_,2)*pow(sec(X[5]),2)*(-4*Iv_+3*pow(a_,2)*m_+2*(4*Iv_+pow(a_,2)*m_)*pow(sec(X[5]),2))*pow(tan(X[5]),2)*X[0]*X[1]))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,-(betaS_/Is_),0,0,0,0,0,(R_*sec(X[5])*(2*cos(X[4])-sin(X[4])*tan(X[5])))/2.,0,0,0,(R_*sec(X[5])*(-2*sin(X[4])-cos(X[4])*tan(X[5]))*X[0])/2.0,-(R_*pow(sec(X[5]),3)*sin(X[4])*X[0])/2.+(R_*sec(X[5])*tan(X[5])*(2*cos(X[4])-sin(X[4])*tan(X[5]))*X[0])/2.,0,(R_*sec(X[5])*(2*sin(X[4])+cos(X[4])*tan(X[5])))/2.,0,0,0,(R_*sec(X[5])*(2*cos(X[4])-sin(X[4])*tan(X[5]))*X[0])/2.,(R_*cos(X[4])*pow(sec(X[5]),3)*X[0])/2.+(R_*sec(X[5])*tan(X[5])*(2*sin(X[4])+cos(X[4])*tan(X[5]))*X[0])/2.,0,(R_*sec(X[5])*tan(X[5]))/a_,0,0,0,0,(R_*pow(sec(X[5]),3)*X[0])/a_+(R_*sec(X[5])*pow(tan(X[5]),2)*X[0])/a_,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0;
 
     return A;
 }
 
+matrix<double> VehicleEquation::matrixB(state_type X)
+{
+    matrix<double> B(numStates_, numberOfControlInputs_);
+    B <<= (8*pow(a_,2)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,1/Is_,0,0,0,0,0,0,0,0,0,0;
+    return B;
+}
+
+matrix<double> VehicleEquation::matrixP(time_type t)
+{
+    matrix<double> P(numberOfControlInputs_, numLambdas_, 0);
+    int sinLength = (numLambdas_-numberOfControlInputs_)/numberOfControlInputs_;
+    P(0,0) = 1;
+    P(1,numLambdas_/2) = 1;
+    for (int j=1; j<=sinLength; j++)
+    {
+        if (j%2 == 1)
+        {
+            P(0,j) = P(1,j+1+sinLength) 
+                = sin(static_cast<time_type>(((j+2-1)/2))*omega_*t); // ceiling division
+
+        }
+        else
+        {
+            P(0,j) = P(1,j+1+sinLength)
+                 = cos(static_cast<time_type>((j/2))*omega_*t); // floor division
+        }
+    }
+    return P;
+}
+
 matrix<double> VehicleEquation::matrixBP(state_type X, time_type t)
 {
-    matrix<double> BP(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM);
+    matrix<double> BP(numStates_, numLambdas_);
 
     BP <<= (8*pow(a_,2)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*pow(cos(X[5]),4)*sin(t*omega_))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*cos(t*omega_)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*pow(cos(X[5]),4)*sin(2*t*omega_))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*cos(2*t*omega_)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*pow(cos(X[5]),4)*sin(3*t*omega_))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),(8*pow(a_,2)*cos(3*t*omega_)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/Is_,sin(t*omega_)/Is_,cos(t*omega_)/Is_,sin(2*t*omega_)/Is_,cos(2*t*omega_)/Is_,sin(3*t*omega_)/Is_,cos(3*t*omega_)/Is_,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
 
     return BP;
 }
 
-matrix<double> VehicleEquation::matrixP(time_type t)
-{
-    matrix<double> P(numberOfControlInputs_, LAMBDA_VECTOR_DIM, 0);
-    int sinLength = (LAMBDA_VECTOR_DIM-numberOfControlInputs_)/numberOfControlInputs_;
-    P(0,0) = 1;
-    P(1,LAMBDA_VECTOR_DIM/2) = 1;
-    for (int j=1; j<=sinLength; j++)
-    {
-        if (j%2 == 1)
-        {
-            P(0,j) = sin(static_cast<time_type>(((j+2-1)/2))*omega_*t); // ceiling division
-        }
-        else
-        {
-            P(0,j) = cos(static_cast<time_type>((j/2))*omega_*t); // floor division
-        }
-    }
-    return P;
-}
-
 double VehicleEquation::u1FromLambdas_(time_type t)
 {
-    std::vector<double> subLambdas(lambdaVec_.begin(), lambdaVec_.begin() + LAMBDA_VECTOR_DIM/2);
+    std::vector<double> subLambdas(lambdaVec_.begin(), lambdaVec_.begin() + numLambdas_/2);
     double ret = 0;
     ret += subLambdas[0];
     for (int i=1; i<subLambdas.size(); i++)
@@ -173,7 +200,7 @@ double VehicleEquation::u1FromLambdas_(time_type t)
 
 double VehicleEquation::u2FromLambdas_(time_type t)
 {
-    std::vector<double> subLambdas(lambdaVec_.begin() + LAMBDA_VECTOR_DIM/2, lambdaVec_.end());
+    std::vector<double> subLambdas(lambdaVec_.begin() + numLambdas_/2, lambdaVec_.end());
     double ret = 0;
     ret += subLambdas[0];
     for (int i=1; i<subLambdas.size(); i++)
@@ -190,7 +217,13 @@ double VehicleEquation::u2FromLambdas_(time_type t)
     return ret;
 }
 
-SMatrixEquation::SMatrixEquation()
+SMatrixEquation::SMatrixEquation(): SMatrixEquation(7,14)
+{}
+
+SMatrixEquation::SMatrixEquation(int numStates, int numLambdas):
+    numStates_(numStates),
+    numLambdas_(numLambdas),
+    vehicleEquation_(numStates_, numLambdas_)
 {
     vehicleEquation_.setControlInputsBasedOnLambdas();
 }
@@ -199,11 +232,11 @@ SMatrixEquation::SMatrixEquation()
 void SMatrixEquation::operator() (const matrix_state_type &S,
     matrix_state_type &dSdt, const time_type t)
 {
-    state_type x(STATE_VECTOR_DIM);
-    state_type dx(STATE_VECTOR_DIM);
-    matrix<double> S_part(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM); // used for both S_part and dS_part
-    matrix<double> AS(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM);
-    matrix<double> BP(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM);
+    state_type x(numStates_);
+    state_type dx(numStates_);
+    matrix<double> S_part(numStates_, numLambdas_); // used for both S_part and dS_part
+    matrix<double> AS(numStates_, numLambdas_);
+    matrix<double> BP(numStates_, numLambdas_);
 
     for (int i=0; i<S_part.size2(); i++)
     {
@@ -216,7 +249,7 @@ void SMatrixEquation::operator() (const matrix_state_type &S,
     }
 
     AS = prod(vehicleEquation_.matrixA(x,vehicleEquation_.u1(t),vehicleEquation_.u2(t)), S_part);
-    BP = vehicleEquation_.matrixBP(x,t);
+    BP = prod(vehicleEquation_.matrixB(x), vehicleEquation_.matrixP(t));
     S_part = AS + BP;
 
     vehicleEquation_(x,dx,t);
@@ -234,5 +267,9 @@ void SMatrixEquation::operator() (const matrix_state_type &S,
 
 void SMatrixEquation::setLambdas(std::vector<double> lambdas)
 {
+    if (lambdas.size() != numLambdas_)
+    {
+        cerr << "Wrong size of lambdas vector. Trying to setLambdas anyway ... " << endl;
+    }
     vehicleEquation_.setLambdas(lambdas);
 }

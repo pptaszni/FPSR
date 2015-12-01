@@ -8,6 +8,7 @@ class VehicleEquation: public EquationBase<state_type>
 {
 public:
     VehicleEquation();
+    VehicleEquation(int numStates, int numLambdas);
     ~VehicleEquation() {}
     void operator() (const state_type &x, state_type &dxdt, const time_type /* t */) override;
     void setControlInputs(boost::function<double (time_type t)> in1,
@@ -19,11 +20,14 @@ public:
     double u1(time_type t);
     double u2(time_type t);
     boost::numeric::ublas::matrix<double> matrixA(state_type X, double u1, double u2);
-    boost::numeric::ublas::matrix<double> matrixBP(state_type X, time_type t);
+    boost::numeric::ublas::matrix<double> matrixB(state_type X);
     boost::numeric::ublas::matrix<double> matrixP(time_type t);
+    boost::numeric::ublas::matrix<double> matrixBP(state_type X, time_type t);
 
 private:
     const int numberOfControlInputs_;
+    const int numStates_;
+    const int numLambdas_;
     boost::function<double (time_type t)> u1_; // first control input [throttle]
     boost::function<double (time_type t)> u2_; // second control input [steering wheel momentum]
     double u1FromLambdas_(time_type t);
@@ -45,10 +49,13 @@ class SMatrixEquation: public EquationBase<matrix_state_type>
 {
 public:
     SMatrixEquation();
+    SMatrixEquation(int numStates, int numLabdas);
     void operator() (const matrix_state_type &S,
         matrix_state_type &dSdt, const time_type t) override;
     void setLambdas(std::vector<double> lambdas) override;
 private:
+    const int numStates_;
+    const int numLambdas_;
     VehicleEquation vehicleEquation_;
 };
 

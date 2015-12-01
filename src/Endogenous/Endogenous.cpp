@@ -15,35 +15,42 @@
 using namespace std;
 using namespace boost::numeric;
 
-EndogenousMethod::EndogenousMethod(): S_(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM), X_(STATE_VECTOR_DIM), C_(Y_REF_DIM, STATE_VECTOR_DIM)
+EndogenousMethod::EndogenousMethod()
 {
-    initParams_();
-
-    /* with default constructor VehicleEquation is solved */
-    sEquation_ = new SMatrixEquation;
-    sEquation_->setLambdas(lambdaVec_);
-    sEquationWrapper_.setEquation(sEquation_);
+    setEquation(NULL);
+    C_ = matrix_state_type(3,7); // default for VehicleEquation
     C_ <<= 0,0,1,0,0,0,0,    0,0,0,1,0,0,0,    0,0,0,0,1,0,0;
+    numLambdas_ = 14; // default lambdas num
+
+    initParams_();
 }
 
-EndogenousMethod::EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_state_type C): S_(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM), X_(STATE_VECTOR_DIM)
+EndogenousMethod::EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_state_type C, int numLambdas)
 {
-    initParams_();
-
-    sEquation_ = eq;
-    sEquation_->setLambdas(lambdaVec_);
-    sEquationWrapper_.setEquation(sEquation_);
+    setEquation(eq);
     C_ = C;
+    numLambdas_ = numLambdas;
+
+    initParams_();
 }
 
 void EndogenousMethod::initParams_()
 {
-    yRef_.assign(Y_REF_DIM, 1);
+    numStates_ = C_.size2();
+    numY_ = C_.size1();
+
+    yRef_.assign(numY_, 1);
+    lambdaVec_.assign(numLambdas_, 2);
+    S_ = matrix_state_type(numStates_, numLambdas_);
+    X_ = state_type(numStates_);
+
+    /* yRef should be set externally
+     * this temporary solution should be refactored
+     */
     yRef_[0] = 5;
     yRef_[1] = 5;
-    lambdaVec_.assign(LAMBDA_VECTOR_DIM, 2);
-    gamma_ = 0.001;
 
+    gamma_ = 0.01;
     start_time_ = 0;
     end_time_ = 10.0;
     interval_ = 0.01; // just initial interval when using adaptive step solver
@@ -57,13 +64,18 @@ EndogenousMethod::~EndogenousMethod()
 
 void EndogenousMethod::start()
 {
+    if (sEquation_ == NULL)
+    {
+        cerr << "No equation has been set. Endogenous Method aborted!" << endl;
+    }
     cout << "EndogenousMethod starts ..." << endl;
     std::vector<double> currentErr;
     double currentErrNorm;
     int iterNum = 0;
-    std::vector<double> newLambdas(LAMBDA_VECTOR_DIM);
+    std::vector<double> newLambdas(numLambdas_);
     matrix_state_type inverseJakobian;
 
+    sEquation_->setLambdas(lambdaVec_);
     separateSAndX(resolveODEForSMatrix());
     currentErr = calculateErr(X_);
     currentErrNorm = euclidNorm(currentErr);
@@ -99,11 +111,18 @@ void EndogenousMethod::setLambdas(std::vector<double> lambdas)
 
 void EndogenousMethod::setYRef(std::vector<double> yRef)
 {
-    if ( !(yRef.size() == yRef_.size() && yRef_.size() == Y_REF_DIM))
+    if ( yRef.size() != numY_ )
         return;
-    yRef_[0] = yRef[0];
-    yRef_[1] = yRef[1];
-    yRef_[2] = yRef[2];
+    for (int i=0; i<yRef_.size(); i++)
+    {
+        yRef_[i] = yRef[i];
+    }
+}
+
+void EndogenousMethod::setEquation(EquationBase<matrix_state_type> *eq)
+{
+    sEquation_ = eq;
+    sEquationWrapper_.setEquation(eq);
 }
 
 std::vector<double> EndogenousMethod::getLambdas()
@@ -128,11 +147,14 @@ state_type EndogenousMethod::getX()
 
 std::vector<double> EndogenousMethod::calculateErr(state_type X)
 {
-    std::vector<double> err(Y_REF_DIM);
+    std::vector<double> err(numY_);
+    ublas::vector<double, state_type> xBlas(X); // stupid type conversion, should be unified in the future
+    ublas::vector<double> y = prod(C_, xBlas);
 
-    err[0] = X[2] - yRef_[0];
-    err[1] = X[3] - yRef_[1];
-    err[2] = X[4] - yRef_[2];
+    for (int i=0; i<yRef_.size(); i++)
+    {
+        err[i] = y[i] - yRef_[i];
+    }
 
     return err;
 }
@@ -151,7 +173,12 @@ double EndogenousMethod::euclidNorm(state_type X)
 
 matrix_state_type EndogenousMethod::resolveODEForSMatrix()
 {
-    matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
+    matrix_state_type S0(numStates_, numLambdas_+1);
+    if (sEquation_ == NULL)
+    {
+        cerr << "No equation has been set. Aborting!" << endl;
+        return S0;
+    }
     size_t steps;
     typedef odeint::runge_kutta_dopri5<matrix_state_type> solver_type;
 
@@ -223,7 +250,7 @@ std::vector<double> EndogenousMethod::calculateNewLambdas(matrix_state_type inve
 {
     ublas::vector<double> ublasErr(err.size());
     ublas::vector<double> inverseJakobianErr;
-    std::vector<double> newLambdas(LAMBDA_VECTOR_DIM);
+    std::vector<double> newLambdas(numLambdas_);
 
     for (int i=0; i<err.size(); i++)
     {
@@ -232,12 +259,12 @@ std::vector<double> EndogenousMethod::calculateNewLambdas(matrix_state_type inve
 
     inverseJakobianErr = ublas::prod(inverseJakobian, ublasErr);
 
-    if (inverseJakobianErr.size() != LAMBDA_VECTOR_DIM)
+    if (inverseJakobianErr.size() != numLambdas_)
     {
         std:cerr << "Sth wrong with matrix-vector multiplication \n";
     }
 
-    for (int i=0; i<LAMBDA_VECTOR_DIM; i++)
+    for (int i=0; i<numLambdas_; i++)
     {
         newLambdas[i] = lambdaVec_[i] - gamma_*inverseJakobianErr(i);
     }
@@ -248,7 +275,7 @@ std::vector<double> EndogenousMethod::calculateNewLambdas(matrix_state_type inve
 void EndogenousMethod::solveSampleEquation()
 {
     cout << "Going to solve sample equation ..." << endl;
-    state_type x0(STATE_VECTOR_DIM,0);
+    state_type x0(numStates_,0);
     const double arr[] = {1.86516,1.61768,0.337301,1.02993,0.0732048,0.486566,0.297225,0.153569,-0.637794,0.365101,0.483851,2.08468,1.42237,1.61822};
     std::vector<double> lambdas(arr, arr+sizeof(arr)/sizeof(arr[0]));
     VehicleEquation vehicleEQ;
@@ -280,9 +307,7 @@ void EndogenousMethod::solveSampleEquation()
 void EndogenousMethod::solveSampleMatrixEquation()
 {
     cout << "Going to solve sample matrix equation ..." << endl;
-    matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
-    //SMatrixEquation *sMatrixEQ = new SMatrixEquation;
-    //sEquationWrapper_.setEquation(sMatrixEQ);
+    matrix_state_type S0(numStates_, numLambdas_+1);
     size_t steps;
     time_type start_time;
     time_type end_time;
@@ -314,8 +339,6 @@ void EndogenousMethod::solveSampleMatrixEquation()
     cout << "Calculated solution in " << steps << " steps \n";
 
     saveResults(out_states, out_time, "matrixSolution");
-    //delete sMatrixEQ;
-    //sEquationWrapper_.setEquation(NULL);
 }
 
 void EndogenousMethod::saveResults(const vector<state_type> out_states,
@@ -379,7 +402,7 @@ void EndogenousMethod::saveResults(const std::vector<matrix_state_type> out_stat
         vector<state_type> x_out;
         for (auto stateMatrix: out_states)
         {
-            state_type x(STATE_VECTOR_DIM);
+            state_type x(numStates_);
             for (int j=0; j<x.size(); j++)
             {
                 x[j]= column(stateMatrix,i)(j);
@@ -393,7 +416,12 @@ void EndogenousMethod::saveResults(const std::vector<matrix_state_type> out_stat
 
 void EndogenousMethod::resolveODEForSMatrixAndStoreResults()
 {
-    matrix_state_type S0(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM+1);
+    if (sEquation_ == NULL)
+    {
+        cerr << "No equation has been set. Aborting!" << endl;
+        return;
+    }
+    matrix_state_type S0(numStates_, numLambdas_+1);
     size_t steps;
     typedef odeint::runge_kutta_dopri5<matrix_state_type> solver_type;
     vector<matrix_state_type> out_states;

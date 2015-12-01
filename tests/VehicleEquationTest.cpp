@@ -7,11 +7,16 @@
 
 #include "VehicleEquation.hpp"
 
+#define STATE_VECTOR_DIM 7
+#define LAMBDA_VECTOR_DIM 14
+
 using namespace boost::numeric::ublas;
 
 class VehicleEquationShould: public testing::Test
 {
 public:
+    VehicleEquationShould(): sut_(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM)
+    {}
     virtual void SetUp()
     {
         sut_.setControlInputs([] (time_type t) -> double {return 0;},
@@ -173,7 +178,8 @@ TEST_F(VehicleEquationShould, returnAppropriateBPMatrixForXEqualToOnesAndTime1)
 
     expectedBP <<= 0.05087,0.0299,0.04116,0.04838,0.01572,0.04838,-0.01572,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.1,0.05878,0.0809,0.09511,0.0309,0.09511,-0.0309,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
 
-    matrix<double> BP = sut_.matrixBP(X,1); // t->1
+    // matrix<double> BP = sut_.matrixBP(X,1); // t->1
+    matrix<double> BP = prod(sut_.matrixB(X), sut_.matrixP(1)); // t->1
 
     ASSERT_EQ(STATE_VECTOR_DIM, BP.size1());
     ASSERT_EQ(LAMBDA_VECTOR_DIM, BP.size2());
@@ -182,7 +188,8 @@ TEST_F(VehicleEquationShould, returnAppropriateBPMatrixForXEqualToOnesAndTime1)
     {
         for(int j=0; j<BP.size2(); j++)
         {
-            ASSERT_LT(std::abs(expectedBP(i,j) - BP(i,j)), abs_err);
+            ASSERT_LT(std::abs(expectedBP(i,j) - BP(i,j)), abs_err)
+                << "BP(" << i << "," << j << ") = " << BP(i,j) << std::endl;
         }
     }
 }

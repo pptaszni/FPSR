@@ -16,10 +16,13 @@ void poissonBlendingSample();
 
 void runEndogenous()
 {
-    SMatrixEquation *eq = new SMatrixEquation;
-    matrix_state_type C(Y_REF_DIM, STATE_VECTOR_DIM);
+    const int numStates = 7;
+    const int numLambdas = 14;
+    const int numY = 3;
+    SMatrixEquation *eq = new SMatrixEquation(numStates, numLambdas);
+    matrix_state_type C(numY, numStates);
     C <<= 0,0,1,0,0,0,0,    0,0,0,1,0,0,0,    0,0,0,0,1,0,0;
-    EndogenousMethod *met = new EndogenousMethod(eq, C);
+    EndogenousMethod *met = new EndogenousMethod(eq, C, numLambdas);
 
     //met->solveSampleMatrixEquation();
     met->start();
