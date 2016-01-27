@@ -149,7 +149,7 @@ state_type EndogenousMethod::getX()
     return X_;
 }
 
-state_type EndogenousMethod::calculateErr(state_type X)
+state_type EndogenousMethod::calculateErr(const state_type &X)
 {
     state_type err(numY_);
     ublas::vector<double, state_type> xBlas(X); // stupid type conversion, should be unified in the future
@@ -163,7 +163,7 @@ state_type EndogenousMethod::calculateErr(state_type X)
     return err;
 }
 
-double EndogenousMethod::euclidNorm(state_type X)
+double EndogenousMethod::euclidNorm(const state_type &X)
 {
     double sum = 0;
 
@@ -205,7 +205,7 @@ matrix_state_type EndogenousMethod::resolveODEForSMatrix()
     return S0;
 }
 
-void EndogenousMethod::separateSAndX(matrix_state_type SX)
+void EndogenousMethod::separateSAndX(const matrix_state_type &SX)
 {
     if (SX.size1() != X_.size() || SX.size2() < S_.size2()+1)
         return;
@@ -221,12 +221,12 @@ void EndogenousMethod::separateSAndX(matrix_state_type SX)
     }
 }
 
-matrix_state_type EndogenousMethod::calculateJakobian(matrix_state_type S)
+matrix_state_type EndogenousMethod::calculateJakobian(const matrix_state_type &S)
 {
     return ublas::prod(C_,S);
 }
 
-matrix_state_type EndogenousMethod::moorePenroseInverse(matrix_state_type mat)
+matrix_state_type EndogenousMethod::moorePenroseInverse(const matrix_state_type &mat)
 {
     typedef ublas::permutation_matrix<std::size_t> pmatrix;
     matrix_state_type transMat(mat.size2(), mat.size1());
@@ -250,7 +250,7 @@ matrix_state_type EndogenousMethod::moorePenroseInverse(matrix_state_type mat)
     return ublas::prod(transMat, inverseMat);
 }
 
-std::vector<double> EndogenousMethod::calculateNewLambdas(matrix_state_type inverseJakobian, std::vector<double> err)
+std::vector<double> EndogenousMethod::calculateNewLambdas(const matrix_state_type &inverseJakobian, const state_type &err)
 {
     ublas::vector<double> ublasErr(err.size());
     ublas::vector<double> inverseJakobianErr;

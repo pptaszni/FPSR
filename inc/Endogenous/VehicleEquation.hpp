@@ -19,10 +19,10 @@ public:
     void setLambdas(std::vector<double> lambdas) override;
     double u1(time_type t);
     double u2(time_type t);
-    boost::numeric::ublas::matrix<double> matrixA(state_type X, double u1, double u2);
-    boost::numeric::ublas::matrix<double> matrixB(state_type X);
+    boost::numeric::ublas::matrix<double> matrixA(const state_type &X, double u1, double u2);
+    boost::numeric::ublas::matrix<double> matrixB(const state_type &X);
     boost::numeric::ublas::matrix<double> matrixP(time_type t);
-    boost::numeric::ublas::matrix<double> matrixBP(state_type X, time_type t);
+    boost::numeric::ublas::matrix<double> matrixBP(const state_type &X, time_type t);
 
 private:
     const int numberOfControlInputs_;

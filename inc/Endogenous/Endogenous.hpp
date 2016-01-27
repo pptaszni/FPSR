@@ -23,13 +23,13 @@ public:
     matrix_state_type getS();
     state_type getX();
 
-    state_type calculateErr(state_type X);
-    double euclidNorm(state_type);
+    state_type calculateErr(const state_type &X);
+    double euclidNorm(const state_type &X);
     matrix_state_type resolveODEForSMatrix();
-    void separateSAndX(matrix_state_type SX);
-    matrix_state_type calculateJakobian(matrix_state_type S);
-    matrix_state_type moorePenroseInverse(matrix_state_type mat);
-    std::vector<double> calculateNewLambdas(matrix_state_type inverseJakobian, std::vector<double> err);
+    void separateSAndX(const matrix_state_type &SX);
+    matrix_state_type calculateJakobian(const matrix_state_type &S);
+    matrix_state_type moorePenroseInverse(const matrix_state_type &mat);
+    std::vector<double> calculateNewLambdas(const matrix_state_type &inverseJakobian, const state_type &err);
 
     void solveSampleEquation();
     void solveSampleMatrixEquation();

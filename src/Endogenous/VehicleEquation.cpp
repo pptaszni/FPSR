@@ -131,7 +131,7 @@ double VehicleEquation::u2(time_type t)
     return u2_(t);
 }
 
-matrix<double> VehicleEquation::matrixA(state_type X, double u1, double u2)
+matrix<double> VehicleEquation::matrixA(const state_type &X, double u1, double u2)
 {
     matrix<double> A(numStates_, numStates_);
 
@@ -140,7 +140,7 @@ matrix<double> VehicleEquation::matrixA(state_type X, double u1, double u2)
     return A;
 }
 
-matrix<double> VehicleEquation::matrixB(state_type X)
+matrix<double> VehicleEquation::matrixB(const state_type &X)
 {
     matrix<double> B(numStates_, numberOfControlInputs_);
     B <<= (8*pow(a_,2)*pow(cos(X[5]),4))/(3*pow(a_,2)*Iw_+(4*Iv_+5*pow(a_,2)*m_)*pow(R_,2)+(-4*Iv_*pow(R_,2)+pow(a_,2)*(4*Iw_+3*m_*pow(R_,2)))*cos(2*X[5])+pow(a_,2)*Iw_*cos(4*X[5])),0,0,1/Is_,0,0,0,0,0,0,0,0,0,0;
@@ -170,7 +170,7 @@ matrix<double> VehicleEquation::matrixP(time_type t)
     return P;
 }
 
-matrix<double> VehicleEquation::matrixBP(state_type X, time_type t)
+matrix<double> VehicleEquation::matrixBP(const state_type &X, time_type t)
 {
     matrix<double> BP(numStates_, numLambdas_);
 
