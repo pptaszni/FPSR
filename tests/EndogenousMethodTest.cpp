@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <boost/shared_ptr.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <boost/numeric/ublas/assignment.hpp>
@@ -26,16 +27,16 @@ public:
     }
     virtual void SetUp()
     {
-        eq = new SMatrixEquation(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM);
+        eq.reset(new SMatrixEquation(STATE_VECTOR_DIM, LAMBDA_VECTOR_DIM));
         sut_.setEquation(eq);
     }
     virtual void TearDown()
     {
-        delete eq;
+        eq.reset();
         sut_.setEquation(NULL);
     }
     EndogenousMethod sut_;
-    SMatrixEquation *eq;
+    boost::shared_ptr<SMatrixEquation> eq;
 };
 
 TEST_F(EndogenousMethodShould, returnLambdasVectorEqualToTheOneThatWasSet)

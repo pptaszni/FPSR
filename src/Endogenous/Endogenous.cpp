@@ -25,7 +25,7 @@ EndogenousMethod::EndogenousMethod()
     initParams_();
 }
 
-EndogenousMethod::EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_state_type C, int numLambdas)
+EndogenousMethod::EndogenousMethod(boost::shared_ptr<EquationBase<matrix_state_type> > eq, matrix_state_type C, int numLambdas)
 {
     setEquation(eq);
     C_ = C;
@@ -123,7 +123,7 @@ void EndogenousMethod::setYRef(std::vector<double> yRef)
     }
 }
 
-void EndogenousMethod::setEquation(EquationBase<matrix_state_type> *eq)
+void EndogenousMethod::setEquation(boost::shared_ptr<EquationBase<matrix_state_type> > eq)
 {
     sEquation_ = eq;
     sEquationWrapper_.setEquation(eq);
@@ -400,7 +400,7 @@ void EndogenousMethod::saveResults(const vector<state_type> out_states,
         gnuplotCommand += boost::lexical_cast<std::string>(i+2);
         gnuplotCommand += " with lines,";
     }
-    
+
     outFile.open("data/gnuplotCommand.txt", ios::trunc);
     outFile << gnuplotCommand;
     outFile.close();

@@ -17,3 +17,5 @@
 build
 # Sublime project files
 *.sublime*
+# Data directory
+data

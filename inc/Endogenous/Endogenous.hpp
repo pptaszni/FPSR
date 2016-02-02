@@ -10,13 +10,13 @@ class EndogenousMethod
 {
 public:
     EndogenousMethod();
-    EndogenousMethod(EquationBase<matrix_state_type> *eq, matrix_state_type C, int numLambdas);
+    EndogenousMethod(boost::shared_ptr<EquationBase<matrix_state_type> > eq, matrix_state_type C, int numLambdas);
     ~EndogenousMethod();
     void start();
 
     void setLambdas(std::vector<double> lambdas);
     void setYRef(std::vector<double> yRef);
-    void setEquation(EquationBase<matrix_state_type> *eq);
+    void setEquation(boost::shared_ptr<EquationBase<matrix_state_type> > eq);
 
     std::vector<double> getLambdas();
     std::vector<double> getYRef();
@@ -64,7 +64,7 @@ private:
     double finalErr_;
 
     /* Equation definition and partial results storage */
-    EquationBase<matrix_state_type> *sEquation_;
+    boost::shared_ptr<EquationBase<matrix_state_type> > sEquation_;
     MatrixEquationWrapper sEquationWrapper_;
     matrix_state_type S_; // matrix part solution of the SMatrix equation
     state_type X_;

@@ -1,6 +1,7 @@
 #ifndef EQUATIONCOMMON
 #define EQUATIONCOMMON
 #include <vector>
+#include <boost/shared_ptr.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 
 typedef std::vector<double> state_type;
@@ -38,9 +39,9 @@ class MatrixEquationWrapper
 public:
     MatrixEquationWrapper();
     void operator() (const matrix_state_type &x, matrix_state_type &dxdt, const time_type t);
-    void setEquation(EquationBase<matrix_state_type> *eq);
+    void setEquation(boost::shared_ptr<EquationBase<matrix_state_type> > eq);
 private:
-    EquationBase<matrix_state_type> *eq_;
+    boost::shared_ptr<EquationBase<matrix_state_type> > eq_;
 };
 
 

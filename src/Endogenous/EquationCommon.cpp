@@ -13,7 +13,7 @@ void MatrixEquationWrapper::operator() (const matrix_state_type &x, matrix_state
     (*eq_)(x,dxdt,t);
 }
 
-void MatrixEquationWrapper::setEquation(EquationBase<matrix_state_type> *eq)
+void MatrixEquationWrapper::setEquation(boost::shared_ptr<EquationBase<matrix_state_type>> eq)
 {
     eq_ = eq;
 }
